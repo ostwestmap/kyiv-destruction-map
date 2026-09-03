@@ -9,7 +9,6 @@
     <link rel="stylesheet" href="https://unpkg.com" />
     
     <style>
-        /* Налаштування на весь екран */
         html, body, #map {
             margin: 0;
             padding: 0;
@@ -43,7 +42,7 @@
             background: #222;
         }
         
-        /* Кастомний заголовок поверх карти */
+        /* Заголовок поверх карти */
         .map-title {
             position: absolute;
             top: 20px;
@@ -80,7 +79,7 @@
 
     <script>
         // Ініціалізація карти з центром у Києві
-        const map = L.map('map').setView([50.4501, 30.5234], 12);
+        const map = L.map('map').setView([50.4501, 30.5234], 11);
 
         // Підключення стильної темної підкладки карти (CartoDB Dark Matter)
         L.tileLayer('https://{s}://{z}/{x}/{y}{r}.png', {
@@ -89,10 +88,9 @@
             maxZoom: 20
         }).addTo(map);
 
-        // Назва вашого файлу даних у репозиторії
         const geojsonUrl = 'damage_kyiv.geojson';
 
-        // Завантаження та обробка GeoJSON
+        // Завантаження GeoJSON
         fetch(geojsonUrl)
             .then(response => {
                 if (!response.ok) {
@@ -101,31 +99,30 @@
                 return response.json();
             })
             .then(data => {
-                // Фільтруємо дані, залишаючи лише ті об'єкти, які мають геометрію та координати
-                const validFeatures = data.features.filter(feature => 
-                    feature.geometry && 
-                    feature.geometry.coordinates && 
-                    !isNaN(feature.geometry.coordinates[0]) && 
-                    !isNaN(feature.geometry.coordinates[1])
-                );
+                // Правильна фільтрація: перевіряємо наявність геометрії та координат
+                const filteredFeatures = data.features.filter(feature => {
+                    return feature.geometry && 
+                           feature.geometry.type === "Point" && 
+                           Array.isArray(feature.geometry.coordinates) &&
+                           feature.geometry.coordinates[0] != null &&
+                           feature.geometry.coordinates[1] != null;
+                });
 
-                // Замінюємо масив об'єктів на відфільтрований
-                data.features = validFeatures;
+                data.features = filteredFeatures;
 
-                // Додаємо точки на карту у вигляді червоних кіл
+                // Додаємо точки на карту
                 L.geoJSON(data, {
                     pointToLayer: function (feature, latlng) {
                         return L.circleMarker(latlng, {
-                            radius: 8,
-                            fillColor: "#ff3333", // Червоний колір
-                            color: "#000",
+                            radius: 7,
+                            fillColor: "#ff3333", 
+                            color: "#fff",
                             weight: 1,
-                            opacity: 1,
-                            fillOpacity: 0.7
+                            opacity: 0.8,
+                            fillOpacity: 0.6
                         });
                     },
                     onEachFeature: function (feature, layer) {
-                        // Формуємо красивий текст для віконця при кліку
                         const props = feature.properties;
                         
                         let popupContent = `<h3>Подія №${props.num || '?'}</h3>`;
@@ -133,7 +130,6 @@
                         if (props.place) popupContent += `<p><b>📍 Місце:</b> ${props.place}</p>`;
                         if (props.wapen) popupContent += `<p><b>🚀 Зброя:</b> ${props.wapen}</p>`;
                         
-                        // Постраждалі
                         let casualties = [];
                         if (props.die && props.die !== '—') casualties.push(`Загиблі: ${props.die}`);
                         if (props.injure && props.injure !== '—' && props.injure !== null) casualties.push(`Поранені: ${props.injure}`);
@@ -149,7 +145,6 @@
             })
             .catch(error => {
                 console.error('Помилка при створенні карти:', error);
-                alert('Помилка завантаження даних карти. Перевірте консоль браузера.');
             });
     </script>
 </body>
