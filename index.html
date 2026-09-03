@@ -2,227 +2,47 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Карта руйнувань Києва</title>
-    
-    <!-- Підключення Leaflet CSS з найнадійнішого CDN (cdnjs) -->
+    <title>Карта</title>
+    <!-- Підключаємо базові стилі карти -->
     <link rel="stylesheet" href="https://cloudflare.com" />
-    
     <style>
-        /* Залізобетонне примусове розгортання карти */
-        html, body {
-            margin: 0;
-            padding: 0;
-            width: 100% !important;
-            height: 100% !important;
-            background-color: #111;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            overflow: hidden;
-        }
-        
-        #map {
-            display: block;
-            width: 100vw !important;
-            height: 100vh !important;
-            position: absolute;
-            top: 0;
-            left: 0;
-            z-index: 1;
-        }
-        
-        /* Спливаючі вікна (Popup) */
-        .leaflet-popup-content-wrapper {
-            background: #222 !important;
-            color: #fff !important;
-            border-radius: 8px;
-            border: 1px solid #444;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-        }
-        .leaflet-popup-content h3 {
-            margin: 0 0 8px 0;
-            font-size: 16px;
-            color: #ff4d4d;
-            border-bottom: 1px solid #444;
-            padding-bottom: 5px;
-        }
-        .leaflet-popup-content p {
-            margin: 5px 0;
-            font-size: 13px;
-            line-height: 1.4;
-        }
-        
-        /* Заголовок карти */
-        .map-title {
-            position: absolute;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1000;
-            background: rgba(20, 20, 20, 0.9);
-            padding: 10px 25px;
-            border-radius: 30px;
-            border: 1px solid #444;
-            color: #fff;
-            text-align: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.6);
-            pointer-events: none;
-        }
-        .map-title h1 {
-            margin: 0;
-            font-size: 18px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        /* Панелі керування карти */
-        .map-control-panel {
-            background: rgba(30, 30, 30, 0.95) !important;
-            border: 1px solid #444 !important;
-            padding: 12px 15px;
-            color: #fff !important;
-            border-radius: 8px;
-            font-size: 13px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-        }
-
-        .filter-year-btn {
-            display: block;
-            margin: 6px 0;
-            cursor: pointer;
-            font-size: 13px;
-        }
-        .filter-year-btn input {
-            margin-right: 8px;
-            accent-color: #ff3333;
+        /* Робимо карту на весь екран */
+        html, body, #map {
+            margin: 0; padding: 0; width: 100%; height: 100%; background: #111;
         }
     </style>
 </head>
 <body>
 
-    <div class="map-title">
-        <h1>Карта руйнувань Києва</h1>
-    </div>
-
+    <!-- Елемент, де малюється карта -->
     <div id="map"></div>
 
-    <!-- Завантажуємо скрипт Leaflet з cdnjs і строго після завантаження запускаємо карту -->
-    <script src="https://cloudflare.com" onload="initMap()"></script>
+    <!-- Підключаємо сам інструмент карти -->
+    <script src="https://cloudflare.com"></script>
 
     <script>
-        function initMap() {
-            // Ініціалізація карти
-            const map = L.map('map').setView([50.4501, 30.5234], 11);
+        // 1. Створюємо карту і показуємо Київ
+        const map = L.map('map').setView([50.4501, 30.5234], 11);
 
-            // Темна тема карти
-            L.tileLayer('https://{s}://{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; OpenStreetMap &copy; CARTO',
-                subdomains: 'abcd',
-                maxZoom: 20
-            }).addTo(map);
+        // 2. Додаємо темне тло карти (вулиці та будинки)
+        L.tileLayer('https://{s}://{z}/{x}/{y}{r}.png').addTo(map);
 
-            let geojsonLayer;
-            let allFeatures = [];
-            let activeYears = { "2022": true, "2023": true, "2024": true, "2025": true, "2026": true };
-
-            function getYearFromDate(dateStr) {
-                if (!dateStr) return null;
-                const match = dateStr.match(/\b(202\d)\b/);
-                return match ? match[0] : null;
-            }
-
-            function updateMapFilters() {
-                if (geojsonLayer) {
-                    map.removeLayer(geojsonLayer);
-                }
-
-                const filteredFeatures = allFeatures.filter(feature => {
-                    if (!feature || !feature.properties) return false;
-                    const year = getYearFromDate(feature.properties.date_time);
-                    return year ? activeYears[year] : true;
-                });
-
-                geojsonLayer = L.geoJSON({
-                    type: "FeatureCollection",
-                    features: filteredFeatures
-                }, {
+        // 3. Беремо ваш чистий файл і просто малюємо звичайні червоні точки
+        fetch('kyiv_damage.geojson')
+            .then(res => res.json())
+            .then(data => {
+                L.geoJSON(data, {
                     pointToLayer: function (feature, latlng) {
                         return L.circleMarker(latlng, {
                             radius: 6,
-                            fillColor: "#ff3333", 
+                            fillColor: "#ff3333",
                             color: "#fff",
                             weight: 1,
-                            opacity: 0.9,
-                            fillOpacity: 0.6
+                            fillOpacity: 0.8
                         });
-                    },
-                    onEachFeature: function (feature, layer) {
-                        const props = feature.properties || {};
-                        let popupContent = `<h3>Подія №${props.num || '?'}</h3>`;
-                        if (props.date_time) popupContent += `<p><b>🕒 Дата:</b> ${props.date_time}</p>`;
-                        if (props.place) popupContent += `<p><b>📍 Місце:</b> ${props.place}</p>`;
-                        if (props.wapen && props.wapen !== '—') popupContent += `<p><b>🚀 Зброя:</b> ${props.wapen}</p>`;
-                        
-                        let casualties = [];
-                        if (props.die && props.die !== '—') casualties.push(`Загиблі: ${props.die}`);
-                        if (props.injure && props.injure !== '—' && props.injure !== null) casualties.push(`Поранені: ${props.injure}`);
-                        if (casualties.length > 0) popupContent += `<p><b>🔴 Постраждалі:</b> ${casualties.join(', ')}</p>`;
-                        
-                        if (props.damage) popupContent += `<p style="border-top: 1px solid #444; padding-top: 5px; margin-top: 5px; color: #ccc;"><b>Руйнування:</b> ${props.damage}</p>`;
-
-                        layer.bindPopup(popupContent, { maxWidth: 300 });
                     }
                 }).addTo(map);
-            }
-
-            // Завантаження файлу даних GeoJSON
-            fetch('kyiv_damage.geojson')
-                .then(response => {
-                    if (!response.ok) throw new Error('Помилка завантаження файлу даних');
-                    return response.json();
-                })
-                .then(data => {
-                    allFeatures = data.features || [];
-                    updateMapFilters();
-                })
-                .catch(error => console.error('Помилка завантаження точок:', error));
-
-            // Панель фільтрації років
-            const filterControl = L.control({position: 'topright'});
-            filterControl.onAdd = function () {
-                const div = L.DomUtil.create('div', 'map-control-panel');
-                div.innerHTML = '<b>Фільтр за роками:</b><br>';
-                
-                const years = ["2022", "2023", "2024", "2025", "2026"];
-                years.forEach(year => {
-                    div.innerHTML += `
-                        <label class="filter-year-btn">
-                            <input type="checkbox" id="chk-${year}" checked>
-                            ${year} рік
-                        </label>
-                    `;
-                });
-                return div;
-            };
-            filterControl.addTo(map);
-
-            // Додаємо події для чекбоксів
-            const years = ["2022", "2023", "2024", "2025", "2026"];
-            years.forEach(year => {
-                document.getElementById(`chk-${year}`).addEventListener('change', function() {
-                    activeYears[year] = this.checked;
-                    updateMapFilters();
-                });
             });
-
-            // Блок легенди
-            const legend = L.control({position: 'bottomright'});
-            legend.onAdd = function () {
-                const div = L.DomUtil.create('div', 'map-control-panel');
-                div.innerHTML = '<b>Умовні позначення:</b><br><span style="color:#ff3333; font-size:16px;">●</span> Місце влучання / уламки';
-                return div;
-            };
-            legend.addTo(map);
-        }
     </script>
 </body>
 </html>
