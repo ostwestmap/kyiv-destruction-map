@@ -94,12 +94,12 @@
 
     <div id="map"></div>
 
-    <!-- Підключення Leaflet JS (завантажується першим) -->
-    <script src="https://unpkg.com"></script>
+    <!-- Завантажуємо скрипт Leaflet і ТІЛЬКИ ПІСЛЯ ЦЬОГО запускаємо функцію initMap -->
+    <script src="https://unpkg.com" onload="initMap()"></script>
 
     <script>
-        // Чекаємо повної готовності сторінки та бібліотеки Leaflet
-        window.addEventListener('DOMContentLoaded', function() {
+        // Ця функція запуститься автоматично, коли файл leaflet.js повністю завантажиться
+        function initMap() {
             
             // Ініціалізація карти (Київ)
             const map = L.map('map').setView([50.4501, 30.5234], 11);
@@ -198,7 +198,7 @@
             };
             filterControl.addTo(map);
 
-            // Вішаємо події зміни стану чекбоксів глобально після створення панелі
+            // Додаємо події зміни стану чекбоксів
             const years = ["2022", "2023", "2024", "2025", "2026"];
             years.forEach(year => {
                 document.getElementById(`chk-${year}`).addEventListener('change', function() {
@@ -215,7 +215,7 @@
                 return div;
             };
             legend.addTo(map);
-        });
+        }
     </script>
 </body>
 </html>
