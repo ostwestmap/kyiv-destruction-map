@@ -2,47 +2,65 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <title>Карта</title>
-    <!-- Підключаємо базові стилі карти -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Карта руйнувань Києва</title>
+    
+    <!-- 1. Підключаємо стилі карти (найнадійніший cdnjs) -->
     <link rel="stylesheet" href="https://cloudflare.com" />
+    
     <style>
-        /* Робимо карту на весь екран */
+        /* Примусово розгортаємо карту на весь екран телефону та комп'ютера */
         html, body, #map {
-            margin: 0; padding: 0; width: 100%; height: 100%; background: #111;
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #111;
         }
     </style>
 </head>
 <body>
 
-    <!-- Елемент, де малюється карта -->
+    <!-- Елемент, де відображатиметься карта -->
     <div id="map"></div>
 
-    <!-- Підключаємо сам інструмент карти -->
-    <script src="https://cloudflare.com"></script>
+    <!-- 2. Підключаємо сам інструмент карти. ТІЛЬКИ після його повного завантаження (onload) запуститься наша карта -->
+    <script src="https://cloudflare.com" onload="startMap()"></script>
 
     <script>
-        // 1. Створюємо карту і показуємо Київ
-        const map = L.map('map').setView([50.4501, 30.5234], 11);
+        // Ця функція чекає, поки Leaflet повністю завантажиться в браузер
+        function startMap() {
+            
+            // Створюємо карту з центром у Києві
+            const map = L.map('map').setView([50.4501, 30.5234], 11);
 
-        // 2. Додаємо темне тло карти (вулиці та будинки)
-        L.tileLayer('https://{s}://{z}/{x}/{y}{r}.png').addTo(map);
+            // Додаємо красиву темну підкладку (вулиці та будинки)
+            L.tileLayer('https://{s}://{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap &copy; CARTO'
+            }).addTo(map);
 
-        // 3. Беремо ваш чистий файл і просто малюємо звичайні червоні точки
-        fetch('kyiv_damage.geojson')
-            .then(res => res.json())
-            .then(data => {
-                L.geoJSON(data, {
-                    pointToLayer: function (feature, latlng) {
-                        return L.circleMarker(latlng, {
-                            radius: 6,
-                            fillColor: "#ff3333",
-                            color: "#fff",
-                            weight: 1,
-                            fillOpacity: 0.8
-                        });
-                    }
-                }).addTo(map);
-            });
+            // Завантажуємо ваш чистий GeoJSON файл, створений в QGIS
+            fetch('kyiv_damage.geojson')
+                .then(response => {
+                    if (!response.ok) throw new Error('Не вдалося завантажити файл даних');
+                    return response.json();
+                })
+                .then(data => {
+                    // Малюємо звичайні червоні точки
+                    L.geoJSON(data, {
+                        pointToLayer: function (feature, latlng) {
+                            return L.circleMarker(latlng, {
+                                radius: 6,
+                                fillColor: "#ff3333", // Червоний колір
+                                color: "#fff",        // Біла лінія навколо точок
+                                weight: 1,
+                                fillOpacity: 0.8
+                            });
+                        }
+                    }).addTo(map);
+                })
+                .catch(error => console.error('Помилка завантаження точок:', error));
+        }
     </script>
 </body>
 </html>
