@@ -18,7 +18,7 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
         
-        /* Стилізація спливаючих вікон (Popup) */
+        /* Спливаючі вікна */
         .leaflet-popup-content-wrapper {
             background: #222;
             color: #fff;
@@ -85,7 +85,7 @@
     <!-- Підключення Leaflet JS -->
     <script src="https://unpkg.com"></script>
 
-    <!-- Пряме підключення вашого файлу з даними як скрипта -->
+    <!-- Пряме підключення вашого файлу з даними -->
     <script src="damage_kyiv.js"></script>
 
     <script>
@@ -99,62 +99,74 @@
             maxZoom: 20
         }).addTo(map);
 
-        // Перевіряємо, чи завантажилися наші дані з файлу damage_kyiv.js
-        if (typeof myGeojsonData !== 'undefined') {
-            L.geoJSON(myGeojsonData, {
-                pointToLayer: function (feature, latlng) {
-                    // Конвертація координат у числа для точності
-                    let lat = parseFloat(feature.properties.Latitude);
-                    let lng = parseFloat(feature.properties.Longitude);
+        // Перевіряємо наявність даних
+        if (typeof myGeojsonData !== 'undefined' && myGeojsonData.features) {
+            
+            myGeojsonData.features.forEach(function(feature) {
+                if (!feature) return;
 
-                    if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
-                        latlng = L.latLng(lat, lng);
-                    }
+                // Універсальний збір властивостей (підтримує і англійську, і українську версії у файлі)
+                const props = feature.properties || feature.властивості || {};
+                
+                // Зчитуємо координати з різних можливих полів
+                let latRaw = props.Latitude || props.широта;
+                let lngRaw = props.Longitude || props.довгота;
 
-                    // Автоматично виправляємо помилкову точку №52 (ставимо її на Позняки)
-                    if (feature.properties && feature.properties.num == "52" && latlng.lat === 0.415861) {
-                        latlng = L.latLng(50.415861, 30.625528);
-                    }
+                let lat = parseFloat(latRaw);
+                let lng = parseFloat(lngRaw);
 
-                    // Відсікаємо будь-які інші помилкові точки за межами Київської області
-                    if (latlng.lat < 49.5 || latlng.lat > 51.5 || latlng.lng < 29.5 || latlng.lng > 31.5) {
-                        return null;
-                    }
-
-                    return L.circleMarker(latlng, {
-                        radius: 6,
-                        fillColor: "#ff3333", 
-                        color: "#fff",
-                        weight: 1,
-                        opacity: 0.9,
-                        fillOpacity: 0.6
-                    });
-                },
-                onEachFeature: function (feature, layer) {
-                    if (!layer) return;
-
-                    const props = feature.properties;
-                    if (!props) return;
-
-                    let popupContent = `<h3>Подія №${props.num || '?'}</h3>`;
-                    if (props.date_time) popupContent += `<p><b>🕒 Дата:</b> ${props.date_time}</p>`;
-                    if (props.place) popupContent += `<p><b>📍 Місце:</b> ${props.place}</p>`;
-                    if (props.wapen) popupContent += `<p><b>🚀 Зброя:</b> ${props.wapen}</p>`;
-                    
-                    let casualties = [];
-                    if (props.die && props.die !== '—') casualties.push(`Загиблі: ${props.die}`);
-                    if (props.injure && props.injure !== '—' && props.injure !== null) casualties.push(`Поранені: ${props.injure}`);
-                    if (casualties.length > 0) {
-                        popupContent += `<p><b>🔴 Постраждалі:</b> ${casualties.join(', ')}</p>`;
-                    }
-
-                    if (props.damage) popupContent += `<p style="border-top: 1px solid #444; padding-top: 5px; margin-top: 5px; color: #ccc;"><b>Руйнування:</b> ${props.damage}</p>`;
-
-                    layer.bindPopup(popupContent, { maxWidth: 300 });
+                // Якщо в properties немає координат, пробуємо взяти стандартні з geometry
+                if ((isNaN(lat) || isNaN(lng)) && feature.geometry && feature.geometry.coordinates) {
+                    lng = parseFloat(feature.geometry.coordinates[0]);
+                    lat = parseFloat(feature.geometry.coordinates[1]);
                 }
-            }).addTo(map);
+
+                // Перевірка на помилку з екватором (подія №52)
+                if (props.num == "52" && lat === 0.415861) {
+                    lat = 50.415861;
+                    lng = 30.625528;
+                }
+
+                // Якщо координати не знайдені або некоректні — просто пропускаємо цей рядок без виклику помилки
+                if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) return;
+                if (lat < 49.5 || lat > 51.5 || lng < 29.5 || lng > 31.5) return;
+
+                // Створюємо маркер на карті
+                const latlng = L.latLng(lat, lng);
+                const marker = L.circleMarker(latlng, {
+                    radius: 6,
+                    fillColor: "#ff3333", 
+                    color: "#fff",
+                    weight: 1,
+                    opacity: 0.9,
+                    fillOpacity: 0.6
+                }).addTo(map);
+
+                // Формуємо вміст Popup (підтримує обидві мови з файлу)
+                let num = props.num || props.число || '?';
+                let dateTime = props.date_time || props.дата_час;
+                let place = props.place || props.місце;
+                let wapen = props.wapen || props.вален || props.зброя;
+                let damage = props.damage || props.руйнування;
+                let die = props.die || props.загиблі;
+                let injure = props.injure || props.поранені;
+
+                let popupContent = `<h3>Подія №${num}</h3>`;
+                if (dateTime) popupContent += `<p><b>🕒 Дата:</b> ${dateTime}</p>`;
+                if (place) popupContent += `<p><b>📍 Місце:</b> ${place}</p>`;
+                if (wapen && wapen !== '—') popupContent += `<p><b>🚀 Зброя:</b> ${wapen}</p>`;
+                
+                let casualties = [];
+                if (die && die !== '—') casualties.push(`Загиблі: ${die}`);
+                if (injure && injure !== '—' && injure !== null) casualties.push(`Поранені: ${injure}`);
+                if (casualties.length > 0) popupContent += `<p><b>🔴 Постраждалі:</b> ${casualties.join(', ')}</p>`;
+                if (damage) popupContent += `<p style="border-top: 1px solid #444; padding-top: 5px; margin-top: 5px; color: #ccc;"><b>Руйнування:</b> ${damage}</p>`;
+
+                marker.bindPopup(popupContent, { maxWidth: 300 });
+            });
+
         } else {
-            console.error("Помилка: дані з файлу damage_kyiv.js не завантажились.");
+            console.error("Дані відсутні або пошкоджені.");
         }
 
         // Додавання блоку легенди
