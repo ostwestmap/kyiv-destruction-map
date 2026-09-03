@@ -3,38 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Карта Києва</title>
+    <title>Карта руйнувань Києва</title>
     
-    <!-- Підключення базових стилів карти -->
+    <!-- Підключення стилів карти -->
     <link rel="stylesheet" href="https://cloudflare.com" />
     
     <style>
-        /* Розгортаємо карту на весь екран */
         html, body, #map {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
-            background-color: #111;
+            background-color: #f0f0f0; /* Світле тло за замовчуванням */
         }
     </style>
 </head>
 <body>
 
-    <!-- Елемент карти -->
     <div id="map"></div>
 
-    <!-- Підключення інструменту карти та запуск -->
+    <!-- Підключення інструменту карти -->
     <script src="https://cloudflare.com" onload="startMap()"></script>
 
     <script>
         function startMap() {
-            // Створюємо карту та фокусуємося строго на Києві
+            // Створюємо карту та фокусуємося на Києві
             const map = L.map('map').setView([50.4501, 30.5234], 11);
 
-            // Завантажуємо красиву темну підкладку (вулиці, дороги, річку Дніпро)
-            L.tileLayer('https://{s}://{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; OpenStreetMap'
+            // НАДІЙНА БАЗОВА КАРТА OPENSTREETMAP БЕЗ ЖОДНИХ БЛОКУВАНЬ CORS ЧИ СЕРВЕРІВ
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap contributors'
             }).addTo(map);
         }
     </script>
