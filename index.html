@@ -18,7 +18,7 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
         
-        /* Спливаючі вікна */
+        /* Спливаючі вікна (Popup) */
         .leaflet-popup-content-wrapper {
             background: #222;
             color: #fff;
@@ -39,7 +39,7 @@
             line-height: 1.4;
         }
         
-        /* Заголовок поверх карти */
+        /* Заголовок карти */
         .map-title {
             position: absolute;
             top: 20px;
@@ -62,15 +62,27 @@
             letter-spacing: 1px;
         }
 
-        /* Легенда у кутку карти */
-        .map-legend {
-            background: rgba(30, 30, 30, 0.9);
+        /* Загальний стиль для блоків керування карти */
+        .map-control-panel {
+            background: rgba(30, 30, 30, 0.95);
             border: 1px solid #444;
-            padding: 10px 15px;
+            padding: 12px 15px;
             color: #fff;
             border-radius: 8px;
-            font-size: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            font-size: 13px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        /* Панель фільтра років */
+        .filter-year-btn {
+            display: block;
+            margin: 6px 0;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .filter-year-btn input {
+            margin-right: 8px;
+            accent-color: #ff3333;
         }
     </style>
 </head>
@@ -85,94 +97,118 @@
     <!-- Підключення Leaflet JS -->
     <script src="https://unpkg.com"></script>
 
-    <!-- Пряме підключення вашого файлу з даними -->
-    <script src="damage_kyiv.js"></script>
-
     <script>
-        // Ініціалізація карти з центром у Києві
+        // Ініціалізація карти (Київ)
         const map = L.map('map').setView([50.4501, 30.5234], 11);
 
-        // Стильна темна підкладка карти
+        // Темна тема карти
         L.tileLayer('https://{s}://{z}/{x}/{y}{r}.png', {
             attribution: '&copy; OpenStreetMap &copy; CARTO',
             subdomains: 'abcd',
             maxZoom: 20
         }).addTo(map);
 
-        // Перевіряємо наявність даних
-        if (typeof myGeojsonData !== 'undefined' && myGeojsonData.features) {
-            
-            myGeojsonData.features.forEach(function(feature) {
-                if (!feature) return;
+        // Глобальний шар для відображення маркерів
+        let geojsonLayer;
+        let allFeatures = [];
+        let activeYears = { "2022": true, "2023": true, "2024": true, "2025": true, "2026": true };
 
-                // Універсальний збір властивостей (підтримує і англійську, і українську версії у файлі)
-                const props = feature.properties || feature.властивості || {};
-                
-                // Зчитуємо координати з різних можливих полів
-                let latRaw = props.Latitude || props.широта;
-                let lngRaw = props.Longitude || props.довгота;
-
-                let lat = parseFloat(latRaw);
-                let lng = parseFloat(lngRaw);
-
-                // Якщо в properties немає координат, пробуємо взяти стандартні з geometry
-                if ((isNaN(lat) || isNaN(lng)) && feature.geometry && feature.geometry.coordinates) {
-                    lng = parseFloat(feature.geometry.coordinates[0]);
-                    lat = parseFloat(feature.geometry.coordinates[1]);
-                }
-
-                // Перевірка на помилку з екватором (подія №52)
-                if (props.num == "52" && lat === 0.415861) {
-                    lat = 50.415861;
-                    lng = 30.625528;
-                }
-
-                // Якщо координати не знайдені або некоректні — просто пропускаємо цей рядок без виклику помилки
-                if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) return;
-                if (lat < 49.5 || lat > 51.5 || lng < 29.5 || lng > 31.5) return;
-
-                // Створюємо маркер на карті
-                const latlng = L.latLng(lat, lng);
-                const marker = L.circleMarker(latlng, {
-                    radius: 6,
-                    fillColor: "#ff3333", 
-                    color: "#fff",
-                    weight: 1,
-                    opacity: 0.9,
-                    fillOpacity: 0.6
-                }).addTo(map);
-
-                // Формуємо вміст Popup (підтримує обидві мови з файлу)
-                let num = props.num || props.число || '?';
-                let dateTime = props.date_time || props.дата_час;
-                let place = props.place || props.місце;
-                let wapen = props.wapen || props.вален || props.зброя;
-                let damage = props.damage || props.руйнування;
-                let die = props.die || props.загиблі;
-                let injure = props.injure || props.поранені;
-
-                let popupContent = `<h3>Подія №${num}</h3>`;
-                if (dateTime) popupContent += `<p><b>🕒 Дата:</b> ${dateTime}</p>`;
-                if (place) popupContent += `<p><b>📍 Місце:</b> ${place}</p>`;
-                if (wapen && wapen !== '—') popupContent += `<p><b>🚀 Зброя:</b> ${wapen}</p>`;
-                
-                let casualties = [];
-                if (die && die !== '—') casualties.push(`Загиблі: ${die}`);
-                if (injure && injure !== '—' && injure !== null) casualties.push(`Поранені: ${injure}`);
-                if (casualties.length > 0) popupContent += `<p><b>🔴 Постраждалі:</b> ${casualties.join(', ')}</p>`;
-                if (damage) popupContent += `<p style="border-top: 1px solid #444; padding-top: 5px; margin-top: 5px; color: #ccc;"><b>Руйнування:</b> ${damage}</p>`;
-
-                marker.bindPopup(popupContent, { maxWidth: 300 });
-            });
-
-        } else {
-            console.error("Дані відсутні або пошкоджені.");
+        // Функція для визначення року з рядка дати
+        function getYearFromDate(dateStr) {
+            if (!dateStr) return null;
+            const match = dateStr.match(/\b(202\d)\b/);
+            return match ? match[1] : null;
         }
 
-        // Додавання блоку легенди
+        // Функція для оновлення точок на карті відповідно до обраних років
+        function updateMapFilters() {
+            if (geojsonLayer) {
+                map.removeLayer(geojsonLayer);
+            }
+
+            // Фільтруємо масив точок
+            const filteredFeatures = allFeatures.filter(feature => {
+                const year = getYearFromDate(feature.properties.date_time);
+                // Якщо рік визначено, перевіряємо чи він увімкнений у фільтрі, інакше показуємо завжди
+                return year ? activeYears[year] : true;
+            });
+
+            // Створюємо новий шар з відфільтрованими даними
+            geojsonLayer = L.geoJSON({
+                type: "FeatureCollection",
+                features: filteredFeatures
+            }, {
+                pointToLayer: function (feature, latlng) {
+                    return L.circleMarker(latlng, {
+                        radius: 6,
+                        fillColor: "#ff3333", 
+                        color: "#fff",
+                        weight: 1,
+                        opacity: 0.9,
+                        fillOpacity: 0.6
+                    });
+                },
+                onEachFeature: function (feature, layer) {
+                    const props = feature.properties || {};
+                    let popupContent = `<h3>Подія №${props.num || '?'}</h3>`;
+                    if (props.date_time) popupContent += `<p><b>🕒 Дата:</b> ${props.date_time}</p>`;
+                    if (props.place) popupContent += `<p><b>📍 Місце:</b> ${props.place}</p>`;
+                    if (props.wapen && props.wapen !== '—') popupContent += `<p><b>🚀 Зброя:</b> ${props.wapen}</p>`;
+                    
+                    let casualties = [];
+                    if (props.die && props.die !== '—') casualties.push(`Загиблі: ${props.die}`);
+                    if (props.injure && props.injure !== '—' && props.injure !== null) casualties.push(`Поранені: ${props.injure}`);
+                    if (casualties.length > 0) popupContent += `<p><b>🔴 Постраждалі:</b> ${casualties.join(', ')}</p>`;
+                    
+                    if (props.damage) popupContent += `<p style="border-top: 1px solid #444; padding-top: 5px; margin-top: 5px; color: #ccc;"><b>Руйнування:</b> ${props.damage}</p>`;
+
+                    layer.bindPopup(popupContent, { maxWidth: 300 });
+                }
+            }).addTo(map);
+        }
+
+        // Завантаження файлу даних GeoJSON
+        fetch('kyiv_damage.geojson')
+            .then(response => {
+                if (!response.ok) throw new Error('Помилка завантаження файлу даних');
+                return response.json();
+            })
+            .then(data => {
+                allFeatures = data.features || [];
+                updateMapFilters(); // Перший запуск карти
+            })
+            .catch(error => console.error('Помилка завантаження точок:', error));
+
+        // Створення інтерактивної панелі фільтрації у правому кутку карти
+        const filterControl = L.control({position: 'topright'});
+        filterControl.onAdd = function () {
+            const div = L.DomUtil.create('div', 'map-control-panel');
+            div.innerHTML = '<b>Фільтр за роками:</b><br>';
+            
+            const years = ["2022", "2023", "2024", "2025", "2026"];
+            years.forEach(year => {
+                div.innerHTML += `
+                    <label class="filter-year-btn">
+                        <input type="checkbox" id="chk-${year}" checked onchange="toggleYear('${year}')">
+                        ${year} рік
+                    </label>
+                `;
+            });
+            return div;
+        };
+        filterControl.addTo(map);
+
+        // Функція, яка викликається при кліку на чекбокс року
+        window.toggleYear = function(year) {
+            const checkbox = document.getElementById(`chk-${year}`);
+            activeYears[year] = checkbox.checked;
+            updateMapFilters(); // Перемальовуємо карту з новими фільтрами
+        };
+
+        // Блок легенди у нижньому кутку
         const legend = L.control({position: 'bottomright'});
         legend.onAdd = function () {
-            const div = L.DomUtil.create('div', 'map-legend');
+            const div = L.DomUtil.create('div', 'map-control-panel');
             div.innerHTML = '<b>Умовні позначення:</b><br><span style="color:#ff3333; font-size:16px;">●</span> Місце влучання / уламки';
             return div;
         };
