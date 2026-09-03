@@ -1,3 +1,4 @@
+const myGeojsonData =
 {
 "type": "FeatureCollection",
 "name": "damage_kyiv",
