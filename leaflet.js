@@ -1,1 +1,1 @@
-import 'https://unpkg.com';
+import 'https://cloudflare.com';
