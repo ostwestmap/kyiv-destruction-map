@@ -9,20 +9,21 @@
     <link rel="stylesheet" href="https://cloudflare.com" />
     
     <style>
-        /* Нормальна карта на весь екран */
+        /* Трушна карта на весь екран */
         html, body, #map {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
-            background-color: #f0f0f0;
+            background-color: #111;
         }
         
-        /* Гарний дизайн віконець при кліку */
+        /* Дизайн віконець при кліку */
         .leaflet-popup-content-wrapper {
             background: #222 !important;
             color: #fff !important;
             border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
         }
         .leaflet-popup-content h3 {
             margin: 0 0 8px 0;
@@ -30,17 +31,30 @@
             border-bottom: 1px solid #444;
             padding-bottom: 5px;
         }
+        .leaflet-popup-content p {
+            margin: 4px 0;
+            font-size: 13px;
+        }
+        
+        /* Заголовок карти */
         .map-title {
             position: absolute;
             top: 15px;
             left: 50%;
             transform: translateX(-50%);
             z-index: 1000;
-            background: rgba(20, 20, 20, 0.9);
-            padding: 8px 20px;
+            background: rgba(20, 20, 20, 0.85);
+            padding: 8px 25px;
             border-radius: 20px;
             color: #fff;
             pointer-events: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+        }
+        .map-title h2 {
+            margin: 0;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
     </style>
 </head>
@@ -50,55 +64,67 @@
         <h2>Карта руйнувань Києва</h2>
     </div>
 
-    <!-- Головний контейнер справжньої карти -->
+    <!-- Контейнер географічної карти -->
     <div id="map"></div>
 
     <!-- Завантажуємо Leaflet JS -->
-    <script src="https://cloudflare.com" onload="initRealMap()"></script>
+    <script src="https://cloudflare.com" onload="initEsriMap()"></script>
 
     <script>
-        function initRealMap() {
-            // 1. Створюємо нормальну карту з центром у Києві
+        function initEsriMap() {
+            // 1. Ініціалізація карти (Київ)
             const map = L.map('map').setView([50.4501, 30.5234], 11);
 
-            // 2. СВІТЛИЙ ПРОФЕСІЙНИЙ TMS ШАР ESRI (Топографічна карта світу)
-            // Цей сервер працює залізобетонно і не блокується
-            L.tileLayer('https://server.arcgisonline.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            // 2. ВАШ СУПУТНИКОВИЙ ШАР ESRI (З виправленим порядком {z}/{y}/{x})
+            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
                 maxZoom: 19,
-                attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ, TomTom, Intermap, iPC, USGS, FAO, NPS, NRCAN, GeoBase, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), and the GIS User Community'
+                attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS'
             }).addTo(map);
 
-            // 3. Завантажуємо твій чистий GeoJSON файл із QGIS
+            // 3. Додаємо шар чітких світлих доріг та назв вулиць поверх супутника
+            // (Він береться з відкритих гібридних серверів Carto, що не блокуються)
+            L.tileLayer('https://{s}://{z}/{x}/{y}{r}.png', {
+                pane: 'shadowPane' // Кладемо назви вулиць поверх маркерів для читаємості
+            }).addTo(map);
+
+            // 4. Завантажуємо ваш GeoJSON файл руйнувань
             fetch('kyiv_damage.geojson')
                 .then(res => {
-                    if (!res.ok) throw new Error("Не вдалося завантажити геодані");
+                    if (!res.ok) throw new Error("Не вдалося завантажити геодані точок");
                     return res.json();
                 })
                 .then(data => {
-                    // Наносимо реальні GPS точки на реальну карту
+                    // Малюємо реальні GPS точки руйнувань
                     L.geoJSON(data, {
                         pointToLayer: function (feature, latlng) {
                             return L.circleMarker(latlng, {
                                 radius: 6,
-                                fillColor: "#ff3333", // Червоні маркери
-                                color: "#ffffff",     // Білий контур
+                                fillColor: "#ff3333", // Червоні крапки вибухів
+                                color: "#ffffff",     // Біла обводка
                                 weight: 1,
-                                fillOpacity: 0.8
+                                fillOpacity: 0.85
                             });
                         },
                         onEachFeature: function (feature, layer) {
                             const props = feature.properties || {};
+                            
                             let popupContent = `<h3>Подія №${props.num || '?'}</h3>`;
                             if (props.date_time) popupContent += `<p><b>🕒 Дата:</b> ${props.date_time}</p>`;
                             if (props.place) popupContent += `<p><b>📍 Місце:</b> ${props.place}</p>`;
                             if (props.wapen && props.wapen !== '—') popupContent += `<p><b>🚀 Зброя:</b> ${props.wapen}</p>`;
-                            if (props.damage) popupContent += `<p style="border-top:1px solid #444; padding-top:5px; color:#ddd;">${props.damage}</p>`;
+                            
+                            let casualties = [];
+                            if (props.die && props.die !== '—') casualties.push(`Загиблі: ${props.die}`);
+                            if (props.injure && props.injure !== '—' && props.injure !== null) casualties.push(`Поранені: ${props.injure}`);
+                            if (casualties.length > 0) popupContent += `<p><b>🔴 Постраждалі:</b> ${casualties.join(', ')}</p>`;
+
+                            if (props.damage) popupContent += `<p style="border-top:1px solid #444; padding-top:5px; margin-top:5px; color:#ccc;">${props.damage}</p>`;
                             
                             layer.bindPopup(popupContent, { maxWidth: 280 });
                         }
                     }).addTo(map);
                 })
-                .catch(err => console.error("Помилка завантаження точок:", err));
+                .catch(err => console.error("Помилка:", err));
         }
     </script>
 </body>
