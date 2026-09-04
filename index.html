@@ -5,37 +5,72 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Карта руйнувань Києва</title>
     
-    <!-- Підключення стилів карти -->
+    <!-- Підключаємо Leaflet CSS точно з такого ж CDN, як у прикладі -->
     <link rel="stylesheet" href="https://cloudflare.com" />
     
     <style>
+        /* Стилі один в один як у Heatmap прикладі */
         html, body, #map {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
-            background-color: #f0f0f0; /* Світле тло за замовчуванням */
+            background-color: #f5f5f5;
         }
     </style>
 </head>
 <body>
 
+    <!-- Контейнер для карти -->
     <div id="map"></div>
 
-    <!-- Підключення інструменту карти -->
-    <script src="https://cloudflare.com" onload="startMap()"></script>
+    <!-- Підключаємо Leaflet JS з cdnjs -->
+    <script src="https://cloudflare.com"></script>
 
     <script>
-        function startMap() {
-            // Створюємо карту та фокусуємося на Києві
-            const map = L.map('map').setView([50.4501, 30.5234], 11);
+        // 1. Ініціалізація карти (Київ)
+        const map = L.map('map').setView([50.4501, 30.5234], 11);
 
-            // НАДІЙНА БАЗОВА КАРТА OPENSTREETMAP БЕЗ ЖОДНИХ БЛОКУВАНЬ CORS ЧИ СЕРВЕРІВ
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '&copy; OpenStreetMap contributors'
-            }).addTo(map);
-        }
+        // 2. БАЗОВИЙ ШАР OPENSTREETMAP (Точно такий же, як у робочих прикладах)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // 3. Зчитування твого GeoJSON файлу за відносним шляхом
+        fetch('kyiv_damage.geojson')
+            .then(res => {
+                if (!res.ok) throw new Error("Помилка завантаження файлу даних");
+                return res.json();
+            })
+            .then(data => {
+                // Малюємо стандартні Leaflet точки без кастомних стилів
+                L.geoJSON(data, {
+                    pointToLayer: function (feature, latlng) {
+                        return L.circleMarker(latlng, {
+                            radius: 6,
+                            fillColor: "#ff3333", // Червоні точки
+                            color: "#ffffff",     // Білий контур навколо них
+                            weight: 1,
+                            opacity: 1,
+                            fillOpacity: 0.8
+                        });
+                    },
+                    onEachFeature: function (feature, layer) {
+                        const props = feature.properties || {};
+                        
+                        // Прості Popup вікна при кліку на точки
+                        let popupContent = `<h3>Подія №${props.num || '?'}</h3>`;
+                        if (props.date_time) popupContent += `<p><b>🕒 Дата:</b> ${props.date_time}</p>`;
+                        if (props.place) popupContent += `<p><b>📍 Місце:</b> ${props.place}</p>`;
+                        if (props.wapen && props.wapen !== '—') popupContent += `<p><b>🚀 Зброя:</b> ${props.wapen}</p>`;
+                        if (props.damage) popupContent += `<p style="border-top:1px solid #ccc; padding-top:5px; margin-top:5px; color:#555;">${props.damage}</p>`;
+                        
+                        layer.bindPopup(popupContent, { maxWidth: 280 });
+                    }
+                }).addTo(map);
+            })
+            .catch(err => console.error("Помилка при завантаженні точок:", err));
     </script>
 </body>
 </html>
