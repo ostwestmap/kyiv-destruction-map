@@ -4,183 +4,101 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Карта руйнувань Києва</title>
+    
+    <!-- Підключаємо стилі Leaflet -->
+    <link rel="stylesheet" href="https://cloudflare.com" />
+    
     <style>
-        html, body {
-            margin: 0; padding: 0; width: 100%; height: 100%;
-            background-color: #f4f4f6;
-            display: flex; justify-content: center; align-items: center;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            overflow: hidden; position: relative;
+        /* Нормальна карта на весь екран */
+        html, body, #map {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #f0f0f0;
         }
-
-        .map-wrapper {
-            width: 90vw; height: 85vh;
-            display: flex; justify-content: center; align-items: center;
-            position: relative;
+        
+        /* Гарний дизайн віконець при кліку */
+        .leaflet-popup-content-wrapper {
+            background: #222 !important;
+            color: #fff !important;
+            border-radius: 8px;
         }
-
-        /* SVG та шар для точок накладаються один на один */
-        .map-wrapper svg, .dots-overlay {
-            width: 100%; height: 100%;
-            max-width: 800px; max-height: 700px;
+        .leaflet-popup-content h3 {
+            margin: 0 0 8px 0;
+            color: #ff4d4d;
+            border-bottom: 1px solid #444;
+            padding-bottom: 5px;
+        }
+        .map-title {
             position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background: rgba(20, 20, 20, 0.9);
+            padding: 8px 20px;
+            border-radius: 20px;
+            color: #fff;
+            pointer-events: none;
         }
-
-        .dots-overlay {
-            pointer-events: none; /* Щоб точки не заважали клікати на карту */
-            z-index: 10;
-        }
-
-        /* Стиль інтерактивних точок вибухів */
-        .damage-dot {
-            fill: #ff3333;
-            stroke: #ffffff;
-            stroke-width: 0.5px;
-            cursor: pointer;
-            pointer-events: auto;
-            transition: transform 0.15s, fill 0.15s;
-        }
-        .damage-dot:hover {
-            fill: #cc0000;
-            transform: scale(1.3);
-        }
-
-        /* Контури меж міста */
-        .map-wrapper path {
-            fill: #ffffff !important;
-            stroke: #a0a0a0 !important;
-            stroke-width: 0.4px !important;
-            transition: fill 0.2s, stroke 0.2s;
-            cursor: pointer;
-        }
-        .map-wrapper path:hover {
-            fill: #e8ecef !important;
-            stroke: #333333 !important;
-        }
-
-        .map-header {
-            position: absolute; top: 20px; color: #222222; text-align: center; z-index: 100;
-        }
-        .map-header h1 { margin: 0; font-size: 20px; text-transform: uppercase; letter-spacing: 2px; }
-
-        /* Вспливаючі підказки при кліку на точку */
-        .custom-popup {
-            position: absolute; background: #222; color: #fff;
-            padding: 12px 15px; border-radius: 8px; font-size: 13px;
-            max-width: 260px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            z-index: 200; display: none; border: 1px solid #444;
-        }
-        .custom-popup h3 { margin: 0 0 6px 0; font-size: 15px; color: #ff4d4d; border-bottom: 1px solid #444; padding-bottom: 4px; }
-        .custom-popup p { margin: 4px 0; line-height: 1.4; }
-        .close-popup { position: absolute; top: 5px; right: 8px; color: #aaa; cursor: pointer; font-size: 14px; }
     </style>
 </head>
 <body>
 
-    <div class="map-header">
-        <h1>Карта руйнувань Києва</h1>
+    <div class="map-title">
+        <h2>Карта руйнувань Києва</h2>
     </div>
 
-    <div class="map-wrapper" id="map-container">
-        <!-- Сюди завантажується SVG контур -->
-        <div id="svg-layer" style="width:100%; height:100%; display:flex; justify-content:center; align-items:center;"></div>
-        <!-- Шар поверх карти для малювання точок руйнувань -->
-        <svg class="dots-overlay" id="dots-layer" viewBox="0 0 162.775 145.419"></svg>
-    </div>
+    <!-- Головний контейнер справжньої карти -->
+    <div id="map"></div>
 
-    <!-- Віконце інформації -->
-    <div class="custom-popup" id="popup">
-        <span class="close-popup" onclick="closePopup()">×</span>
-        <div id="popup-content"></div>
-    </div>
+    <!-- Завантажуємо Leaflet JS -->
+    <script src="https://cloudflare.com" onload="initRealMap()"></script>
 
     <script>
-        // Фіксовані межі SVG з твого QGIS макета
-        const svgW = 162.775;
-        const svgH = 145.419;
+        function initRealMap() {
+            // 1. Створюємо нормальну карту з центром у Києві
+            const map = L.map('map').setView([50.4501, 30.5234], 11);
 
-        // Ручні крайні GPS координати Києва для ідеальної посадки точок
-        // (Якщо точки трохи змістяться, ми просто підкоригуємо ці 4 цифри)
-        const minLng = 30.20; 
-        const maxLng = 30.85; 
-        const minLat = 50.28; 
-        const maxLat = 50.63; 
+            // 2. СВІТЛИЙ ПРОФЕСІЙНИЙ TMS ШАР ESRI (Топографічна карта світу)
+            // Цей сервер працює залізобетонно і не блокується
+            L.tileLayer('https://server.arcgisonline.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 19,
+                attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ, TomTom, Intermap, iPC, USGS, FAO, NPS, NRCAN, GeoBase, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), and the GIS User Community'
+            }).addTo(map);
 
-        // 1. Завантажуємо межі міста
-        fetch('border.svg')
-            .then(res => res.text())
-            .then(svgText => {
-                const layer = document.getElementById('svg-layer');
-                layer.innerHTML = svgText;
-                const svg = layer.querySelector('svg');
-                if (svg) {
-                    svg.setAttribute('width', '100%');
-                    svg.setAttribute('height', '100%');
-                    svg.setAttribute('viewBox', `0 0 ${svgW} ${svgH}`);
-                }
-                // Після меж завантажуємо точки
-                loadPoints();
-            });
-
-        // 2. Завантажуємо точки руйнувань
-        function loadPoints() {
+            // 3. Завантажуємо твій чистий GeoJSON файл із QGIS
             fetch('kyiv_damage.geojson')
-                .then(res => res.json())
+                .then(res => {
+                    if (!res.ok) throw new Error("Не вдалося завантажити геодані");
+                    return res.json();
+                })
                 .then(data => {
-                    const dotsLayer = document.getElementById('dots-layer');
-                    
-                    data.features.forEach(feature => {
-                        if (!feature.geometry || !feature.geometry.coordinates) return;
-                        
-                        const lng = feature.geometry.coordinates[0];
-                        const lat = feature.geometry.coordinates[1];
-
-                        // Математична проєкція: переводимо градуси в пікселі SVG
-                        const x = ((lng - minLng) / (maxLng - minLng)) * svgW;
-                        // В SVG нуль ігрека вгорі, тому перевертаємо карту (svgH - ...)
-                        const y = svgH - (((lat - minLat) / (maxLat - minLat)) * svgH);
-
-                        // Якщо точка вилетіла за межі нашої карти — пропускаємо її
-                        if (x < 0 || x > svgW || y < 0 || y > svgH) return;
-
-                        // Створюємо крапку вибуху
-                        const circle = document.createElementNS("http://w3.org", "circle");
-                        circle.setAttribute("cx", x);
-                        circle.setAttribute("cy", y);
-                        circle.setAttribute("r", "1.2"); // Розмір крапки під сітку viewBox
-                        circle.setAttribute("class", "damage-dot");
-
-                        // Клік на точку показує опис події
-                        circle.addEventListener('click', (e) => {
-                            showPopup(e, feature.properties);
-                        });
-
-                        dotsLayer.appendChild(circle);
-                    });
-                });
-        }
-
-        // Відображення інформаційного віконця
-        function showPopup(e, props) {
-            const popup = document.getElementById('popup');
-            const content = document.getElementById('popup-content');
-            
-            let html = `<h3>Подія №${props.num || '?'}</h3>`;
-            if (props.date_time) html += `<p><b>🕒 Дата:</b> ${props.date_time}</p>`;
-            if (props.place) html += `<p><b>📍 Місце:</b> ${props.place}</p>`;
-            if (props.wapen && props.wapen !== '—') html += `<p><b>🚀 Зброя:</b> ${props.wapen}</p>`;
-            if (props.damage) html += `<p style="border-top:1px solid #444; padding-top:4px; margin-top:4px; color:#ddd;">${props.damage}</p>`;
-            
-            content.innerHTML = html;
-            
-            // Позиціонуємо вікно біля мишки
-            popup.style.left = (e.clientX + 15) + 'px';
-            popup.style.top = (e.clientY - 15) + 'px';
-            popup.style.display = 'block';
-        }
-
-        function closePopup() {
-            document.getElementById('popup').style.display = 'none';
+                    // Наносимо реальні GPS точки на реальну карту
+                    L.geoJSON(data, {
+                        pointToLayer: function (feature, latlng) {
+                            return L.circleMarker(latlng, {
+                                radius: 6,
+                                fillColor: "#ff3333", // Червоні маркери
+                                color: "#ffffff",     // Білий контур
+                                weight: 1,
+                                fillOpacity: 0.8
+                            });
+                        },
+                        onEachFeature: function (feature, layer) {
+                            const props = feature.properties || {};
+                            let popupContent = `<h3>Подія №${props.num || '?'}</h3>`;
+                            if (props.date_time) popupContent += `<p><b>🕒 Дата:</b> ${props.date_time}</p>`;
+                            if (props.place) popupContent += `<p><b>📍 Місце:</b> ${props.place}</p>`;
+                            if (props.wapen && props.wapen !== '—') popupContent += `<p><b>🚀 Зброя:</b> ${props.wapen}</p>`;
+                            if (props.damage) popupContent += `<p style="border-top:1px solid #444; padding-top:5px; color:#ddd;">${props.damage}</p>`;
+                            
+                            layer.bindPopup(popupContent, { maxWidth: 280 });
+                        }
+                    }).addTo(map);
+                })
+                .catch(err => console.error("Помилка завантаження точок:", err));
         }
     </script>
 </body>
