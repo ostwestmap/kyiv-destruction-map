@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Базова супутникова карта Києва</title>
+    <title>Супутникова карта Києва</title>
     
     <!-- Підключаємо базові стилі карти -->
     <link rel="stylesheet" href="https://cloudflare.com" />
     
     <style>
-        /* Розгортаємо карту на весь екран */
+        /* Карта на весь екран */
         html, body, #map {
             margin: 0;
             padding: 0;
@@ -21,21 +21,20 @@
 </head>
 <body>
 
-    <!-- Контейнер для карти -->
+    <!-- Контейнер карти -->
     <div id="map"></div>
 
-    <!-- Підключення інструменту карти -->
+    <!-- Підключення Leaflet JS -->
     <script src="https://cloudflare.com" onload="startMap()"></script>
 
     <script>
         function startMap() {
-            // 1. Створюємо карту та фокусуємося строго на Києві
+            // 1. Ініціалізація карти та фокусування на Києві
             const map = L.map('map').setView([50.4501, 30.5234], 11);
 
-            // 2. ЧИСТИЙ СУПУТНИКОВИЙ ШАР ESRI (Строго за твоїм робочим посиланням)
+            // 2. СУПУТНИКОВИЙ ШАР ESRI (Строго твоє посилання)
             L.tileLayer('https://server.arcgisonline.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
                 maxZoom: 19,
-                subdomains: [], // Прибираємо субдомени, щоб Leaflet не ламав адресу
                 attribution: 'Tiles &copy; Esri'
             }).addTo(map);
         }
