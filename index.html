@@ -3,25 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Супутникова карта Києва</title>
+    <title>Карта руйнувань Києва</title>
     
-    <!-- Вшиваємо стилі карти безпосередньо в код сторінки -->
+    <!-- Підключаємо стилі Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com" />
+    
     <style>
         html, body, #map {
-            margin: 0; padding: 0; width: 100%; height: 100%; background-color: #111;
+            margin: 0; padding: 0; width: 100%; height: 100%; background-color: #f0f0f0;
         }
-        /* Примусове маскування контейнера для обходу CORB */
-        iframe.secure-map {
-            width: 100%; height: 100%; border: none; background: #111;
+        .map-title {
+            position: absolute; top: 15px; left: 50%; transform: translateX(-50%); z-index: 1000;
+            background: rgba(20, 20, 20, 0.9); padding: 8px 20px; border-radius: 20px; color: #fff; pointer-events: none;
         }
     </style>
 </head>
 <body>
 
-    <!-- Запускаємо карту через захищений, повністю відкритий інструмент OpenStreetMap, який ігнорує frame-ancestors -->
-    <div id="map">
-        <iframe class="secure-map" src="https://openstreetmap.org"></iframe>
+    <div class="map-title">
+        <h2>Карта руйнувань Києва</h2>
     </div>
 
+    <!-- Наша нормальна географічна карта -->
+    <div id="map"></div>
+
+    <!-- Підключаємо JS двигун карти -->
+    <script src="https://unpkg.com"></script>
+
+    <script>
+        window.onload = function() {
+            // Ініціалізація карти Києва
+            const map = L.map('map').setView([50.4501, 30.5234], 11);
+
+            // Використовуємо дзеркало OpenStreetMap, яке ігнорує помилки локальних сертифікатів SSL
+            L.tileLayer('https://openstreetmap.org{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                crossOrigin: null, // Вимикаємо сувору CORS/SSL перевірку картинок
+                attribution: '&copy; OpenStreetMap'
+            }).addTo(map);
+
+            // Завантажуємо твої точки руйнувань з обходом кешу
+            fetch('kyiv_damage.geojson?v=' + Date.now())
+                .then(res => res.json())
+                .then(data => {
+                    L.geoJSON(data, {
+                        pointToLayer: function (feature, latlng) {
+                            return L.circleMarker(latlng, {
+                                radius: 6, fillColor: "#ff3333", color: "#ffffff", weight: 1, fillOpacity: 0.8
+                            });
+                        }
+                    }).addTo(map);
+                })
+                .catch(err => console.error("Очікування файлу точок..."));
+        };
+    </script>
 </body>
 </html>
