@@ -5,11 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Карта руйнувань Києва</title>
     
-    <!-- Підключаємо стилі з перевіреного сервера unpkg -->
+    <!-- 1. ПІДКЛЮЧАЄМО СТИЛІ КАРТИ -->
     <link rel="stylesheet" href="https://unpkg.com" />
     
+    <!-- 2. ПІДКЛЮЧАЄМО ДВИГУН КАРТИ ВГОРІ (Захист від L is not defined) -->
+    <script src="https://unpkg.com"></script>
+    
     <style>
-        /* Примусове розгортання карти на весь екран */
         html, body, #map {
             margin: 0; 
             padding: 0; 
@@ -17,37 +19,16 @@
             height: 100%; 
             background-color: #f0f0f0;
         }
-        
-        /* Гарний темний дизайн віконець при кліку на точки */
-        .leaflet-popup-content-wrapper {
-            background: #222 !important;
-            color: #fff !important;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-            font-family: Arial, sans-serif;
-        }
-        .leaflet-popup-content h3 {
-            margin: 0 0 8px 0;
-            color: #ff4d4d;
-            border-bottom: 1px solid #444;
-            padding-bottom: 5px;
-        }
-        .leaflet-popup-content p {
-            margin: 4px 0;
-            font-size: 13px;
-        }
-        
-        /* Стильний заголовок поверх карти */
         .map-title {
-            position: absolute;
-            top: 15px;
-            left: 50%;
-            transform: translateX(-50%);
+            position: absolute; 
+            top: 15px; 
+            left: 50%; 
+            transform: translateX(-50%); 
             z-index: 1000;
-            background: rgba(20, 20, 20, 0.9);
-            padding: 8px 25px;
-            border-radius: 20px;
-            color: #fff;
+            background: rgba(20, 20, 20, 0.9); 
+            padding: 8px 20px; 
+            border-radius: 20px; 
+            color: #fff; 
             pointer-events: none;
             font-family: Arial, sans-serif;
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
@@ -69,35 +50,37 @@
     <!-- Контейнер карти -->
     <div id="map"></div>
 
-    <!-- Підключаємо двигун карти з перевіреного сервера unpkg -->
-    <script src="https://unpkg.com"></script>
-
     <script>
-        window.onload = function() {
-            // 1. Ініціалізація карти Києва
+        // Запускаємо логіку, коли сторінка готова
+        window.addEventListener('DOMContentLoaded', function() {
+            // Перевірка працездатності Leaflet
+            if (typeof L === 'undefined') {
+                console.error("Критична помилка: бібліотека Leaflet не знайдена.");
+                return;
+            }
+
+            // Ініціалізація карти Києва
             const map = L.map('map').setView([50.4501, 30.5234], 11);
 
-            // 2. Базова світла карта
+            // Додаємо базову карту
             L.tileLayer('https://openstreetmap.org{z}/{x}/{y}.png', {
                 maxZoom: 19,
-                crossOrigin: null, // Скасовуємо жорсткі SSL-блокування для картинок
                 attribution: '&copy; OpenStreetMap'
             }).addTo(map);
 
-            // 3. Завантажуємо твій чистий GeoJSON файл точок із захистом від кешування
+            // Завантажуємо точки руйнувань із захистом від кешування
             fetch('kyiv_damage.geojson?v=' + Date.now())
                 .then(res => {
                     if (!res.ok) throw new Error("Файл геоданих не знайдено");
                     return res.json();
                 })
                 .then(data => {
-                    // Наносимо червоні точки на карту
                     L.geoJSON(data, {
                         pointToLayer: function (feature, latlng) {
                             return L.circleMarker(latlng, {
                                 radius: 6,
-                                fillColor: "#ff3333", // Червоні маркери вибухів
-                                color: "#ffffff",     // Біла лінія навколо точок
+                                fillColor: "#ff3333",
+                                color: "#ffffff",
                                 weight: 1,
                                 fillOpacity: 0.85
                             });
@@ -105,13 +88,11 @@
                         onEachFeature: function (feature, layer) {
                             const props = feature.properties || {};
                             
-                            // Збираємо інформаційне вікно при кліку з твоїх полів
                             let popupContent = `<h3>Подія №${props.num || '?'}</h3>`;
                             if (props.date_time) popupContent += `<p><b>🕒 Дата:</b> ${props.date_time}</p>`;
                             if (props.place) popupContent += `<p><b>📍 Місце:</b> ${props.place}</p>`;
                             if (props.wapen && props.wapen !== '—') popupContent += `<p><b>🚀 Зброя:</b> ${props.wapen}</p>`;
                             
-                            // Рахуємо постраждалих
                             let casualties = [];
                             if (props.die && props.die !== '—') casualties.push(`Загиблі: ${props.die}`);
                             if (props.injure && props.injure !== '—' && props.injure !== null) casualties.push(`Поранені: ${props.injure}`);
@@ -123,8 +104,8 @@
                         }
                     }).addTo(map);
                 })
-                .catch(err => console.log("Очікування файлу точок..."));
-        };
+                .catch(err => console.log("Завантаження даних..."));
+        });
     </script>
 </body>
 </html>
