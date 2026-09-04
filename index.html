@@ -3,44 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Базова супутникова карта Mapbox</title>
+    <title>Супутникова карта</title>
     
-    <!-- Подключаем официальные стили Mapbox GL JS -->
-    <link href="https://mapbox.com" rel="stylesheet" />
+    <!-- Підключаємо стилі через альтернативний Cloudflare CDN, який часто пробиває CORB -->
+    <link href="https://cloudflare.com" rel="stylesheet" />
     
     <style>
-        /* Разворачиваем карту на весь экран */
         html, body, #map {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            background-color: #111;
+            margin: 0; padding: 0; width: 100%; height: 100%; background-color: #111;
         }
     </style>
 </head>
 <body>
 
-    <!-- Контейнер для карты Mapbox -->
     <div id="map"></div>
 
-    <!-- Подключаем сам движок Mapbox GL JS -->
-    <script src="https://mapbox.com"></script>
+    <!-- Завантажуємо сам рушій карти з надійного cdnjs, оминаючи блокування офіційного ://mapbox.com -->
+    <script src="https://cloudflare.com"></script>
 
     <script>
-        // Вставляем рабочий токен доступа для теста
-        mapboxgl.accessToken = 'pk.eyJ1Ijoib3N0d2VzdG1hcCIsImEiOiJjbTdtOHUxdmowMWN4MnFzOHQ0dW8xeXkxIn0.B5lS52tT_8z5wT9z3z3z3z';
+        // Чекаємо, поки скрипт точно прочитається браузером
+        window.onload = function() {
+            if (typeof mapboxgl === 'undefined') {
+                console.error("Mapbox не зміг завантажитися через блокування CORB.");
+                return;
+            }
 
-        // Инициализация карты с центром в Киеве
-        const map = new mapboxgl.Map({
-            container: 'map', // id контейнера
-            style: 'mapbox://styles/mapbox/satellite-v9', // Официальный спутниковый стиль
-            center: [30.5234, 50.4501], // Координаты Киева [долгота, широта]
-            zoom: 11 // Масштаб
-        });
+            // Наш робочий токен
+            mapboxgl.accessToken = 'pk.eyJ1Ijoib3N0d2VzdG1hcCIsImEiOiJjbTdtOHUxdmowMWN4MnFzOHQ0dW8xeXkxIn0.B5lS52tT_8z5wT9z3z3z3z';
 
-        // Добавляем кнопки зума в угол карты для удобства
-        map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+            // Ініціалізація карти
+            const map = new mapboxgl.Map({
+                container: 'map',
+                style: 'mapbox://styles/mapbox/satellite-v9', // Чистий супутник
+                center: [30.5234, 50.4501], // Київ
+                zoom: 11
+            });
+
+            map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+        };
     </script>
 </body>
 </html>
