@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Карта руйнувань Києва</title>
     <style>
-        /* Стильне темне тло, як на карті-прикладі */
+        /* Приємний світлий фон для всієї сторінки */
         html, body {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
-            background-color: #1a1a1a;
+            background-color: #f4f4f6;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -19,7 +19,7 @@
             overflow: hidden;
         }
 
-        /* Контейнер для нашої карти */
+        /* Контейнер для адаптивного масштабування */
         .map-wrapper {
             width: 90vw;
             height: 85vh;
@@ -28,7 +28,6 @@
             align-items: center;
         }
 
-        /* Стилізація самого SVG-контуру міста */
         .map-wrapper svg {
             width: 100%;
             height: 100%;
@@ -36,25 +35,27 @@
             max-height: 700px;
         }
 
-        /* Фарбуємо лінії та заливку Києва, додаємо красиве підсвічування при наведенні */
+        /* Фарбуємо межі Києва у світлий (майже білий) колір, а лінії робимо чіткими сірими */
         .map-wrapper path {
-            fill: #2a2a2a !important;
-            stroke: #444444 !important;
-            stroke-width: 0.5px !important;
-            transition: fill 0.3s, stroke 0.3s;
+            fill: #ffffff !important;
+            stroke: #a0a0a0 !important;
+            stroke-width: 0.4px !important;
+            transition: fill 0.2s, stroke 0.2s;
             cursor: pointer;
         }
 
+        /* Ефект при наведенні: фарбуємо район у легкий блакитний/сірий, а контур робимо червоним */
         .map-wrapper path:hover {
-            fill: #3a3a3a !important;
-            stroke: #ff3333 !important; /* Підсвічуємо червоним межі при наведенні */
+            fill: #e8ecef !important;
+            stroke: #ff3333 !important;
+            stroke-width: 0.8px !important;
         }
 
-        /* Заголовок карти */
+        /* Заголовок карти (темний текст для світлого фону) */
         .map-header {
             position: absolute;
             top: 20px;
-            color: #ffffff;
+            color: #222222;
             text-align: center;
             pointer-events: none;
         }
@@ -63,20 +64,20 @@
             font-size: 20px;
             text-transform: uppercase;
             letter-spacing: 2px;
+            font-weight: 700;
         }
     </style>
 </head>
 <body>
 
     <div class="map-header">
-        <h1>Межі Києва (Автономна карта)</h1>
+        <h1>Карта руйнувань Києва</h1>
     </div>
 
-    <!-- Сюди за допомогою JavaScript завантажиться твій файл border.svg -->
     <div class="map-wrapper" id="map-container"></div>
 
     <script>
-        // Завантажуємо твій файл border.svg напряму з репозиторію
+        // Завантаження файлу SVG
         fetch('border.svg')
             .then(response => {
                 if (!response.ok) throw new Error('Не вдалося завантажити файл меж');
@@ -84,24 +85,21 @@
             })
             .then(svgText => {
                 const container = document.getElementById('map-container');
-                // Вбудовуємо SVG код прямо в сторінку
                 container.innerHTML = svgText;
                 
-                // Налаштовуємо параметри відображення, щоб малюнок масштабувався адаптивно
                 const svgElement = container.querySelector('svg');
                 if (svgElement) {
                     svgElement.setAttribute('width', '100%');
                     svgElement.setAttribute('height', '100%');
-                    // Додатковий захист: якщо QGIS не прописав viewBox, фіксуємо його з твого скриншоту
                     if (!svgElement.getAttribute('viewBox')) {
                         svgElement.setAttribute('viewBox', '0 0 162.775 145.419');
                     }
                 }
             })
             .catch(error => {
-                console.error('Помилка завантаження карти:', error);
+                console.error('Помилка:', error);
                 document.getElementById('map-container').innerHTML = 
-                    `<p style="color: #ff4d4d;">Помилка завантаження файлу border.svg. Перевірте консоль.</p>`;
+                    `<p style="color: #ff3333;">Помилка відображення контурів.</p>`;
             });
     </script>
 </body>
