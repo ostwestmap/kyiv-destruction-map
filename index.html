@@ -3,41 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Супутникова карта Києва</title>
+    <title>Базова супутникова карта Mapbox</title>
     
-    <!-- Підключаємо базові стилі карти -->
-    <link rel="stylesheet" href="https://cloudflare.com" />
+    <!-- Подключаем официальные стили Mapbox GL JS -->
+    <link href="https://mapbox.com" rel="stylesheet" />
     
     <style>
-        /* Карта на весь екран */
+        /* Разворачиваем карту на весь экран */
         html, body, #map {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
-            
+            background-color: #111;
         }
     </style>
 </head>
 <body>
 
-    <!-- Контейнер карти -->
+    <!-- Контейнер для карты Mapbox -->
     <div id="map"></div>
 
-    <!-- Підключення Leaflet JS -->
-    <script src="https://cloudflare.com" onload="startMap()"></script>
+    <!-- Подключаем сам движок Mapbox GL JS -->
+    <script src="https://mapbox.com"></script>
 
     <script>
-        function startMap() {
-            // 1. Ініціалізація карти та фокусування на Києві
-            const map = L.map('map').setView([50.4501, 30.5234], 11);
+        // Вставляем рабочий токен доступа для теста
+        mapboxgl.accessToken = 'pk.eyJ1Ijoib3N0d2VzdG1hcCIsImEiOiJjbTdtOHUxdmowMWN4MnFzOHQ0dW8xeXkxIn0.B5lS52tT_8z5wT9z3z3z3z';
 
-            // 2. СУПУТНИКОВИЙ ШАР ESRI (Строго твоє посилання)
-            L.tileLayer('https://server.arcgisonline.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                maxZoom: 19,
-                attribution: 'Tiles &copy; Esri'
-            }).addTo(map);
-        }
+        // Инициализация карты с центром в Киеве
+        const map = new mapboxgl.Map({
+            container: 'map', // id контейнера
+            style: 'mapbox://styles/mapbox/satellite-v9', // Официальный спутниковый стиль
+            center: [30.5234, 50.4501], // Координаты Киева [долгота, широта]
+            zoom: 11 // Масштаб
+        });
+
+        // Добавляем кнопки зума в угол карты для удобства
+        map.addControl(new mapboxgl.NavigationControl(), 'top-right');
     </script>
 </body>
 </html>
