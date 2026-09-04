@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Карта руйнувань Києва</title>
     
-    <!-- Підключаємо стандартні стилі, вони зазвичай пробиваються без проблем -->
+    <!-- Підключаємо стандартні стилі з unpkg -->
     <link rel="stylesheet" href="https://unpkg.com" />
     
     <style>
@@ -28,55 +28,57 @@
 
     <div id="map"></div>
 
-    <!-- Завантажуємо Leaflet через захищений модульний інжектор esm.sh, який пробиває будь-які блоки -->
+    <!-- ТЕПЕР МИ БЕРЕМО ДВИГУН КАРТИ ЛОКАЛЬНО З ТВОГО Ж РЕПОЗИТОРІЮ ЯК МОДУЛЬ! -->
     <script type="module">
-        import L from 'https://esm.sh';
+        import './leaflet.js';
 
-        // Ініціалізація карти Києва
-        const map = L.map('map').setView([50.4501, 30.5234], 11);
+        // Запускаємо логіку після перевірки готовності карти
+        setTimeout(function() {
+            if (typeof L === 'undefined') {
+                console.error("Помилка: навіть локальний файл не зміг обійти блок.");
+                return;
+            }
 
-        // Додаємо базову світлу карту OpenStreetMap
-        L.tileLayer('https://openstreetmap.org{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '&copy; OpenStreetMap'
-        }).addTo(map);
+            // Ініціалізація карти Києва
+            const map = L.map('map').setView([50.4501, 30.5234], 11);
 
-        // Завантажуємо твій чистий GeoJSON файл точок
-        fetch('kyiv_damage.geojson?v=' + Date.now())
-            .then(res => {
-                if (!res.ok) throw new Error("Файл геоданих не знайдено");
-                return res.json();
-            })
-            .then(data => {
-                L.geoJSON(data, {
-                    pointToLayer: function (feature, latlng) {
-                        return L.circleMarker(latlng, {
-                            radius: 6,
-                            fillColor: "#ff3333", // Червоні маркери руйнувань
-                            color: "#ffffff",     // Біла лінія навколо них
-                            weight: 1,
-                            fillOpacity: 0.85
-                        });
-                    },
-                    onEachFeature: function (feature, layer) {
-                        const props = feature.properties || {};
-                        let popupContent = `<h3>Подія №${props.num || '?'}</h3>`;
-                        if (props.date_time) popupContent += `<p><b>🕒 Дата:</b> ${props.date_time}</p>`;
-                        if (props.place) popupContent += `<p><b>📍 Місце:</b> ${props.place}</p>`;
-                        if (props.wapen && props.wapen !== '—') popupContent += `<p><b>🚀 Зброя:</b> ${props.wapen}</p>`;
-                        
-                        let casualties = [];
-                        if (props.die && props.die !== '—') casualties.push(`Загиблі: ${props.die}`);
-                        if (props.injure && props.injure !== '—' && props.injure !== null) casualties.push(`Поранені: ${props.injure}`);
-                        if (casualties.length > 0) popupContent += `<p><b>🔴 Постраждалі:</b> ${casualties.join(', ')}</p>`;
+            // Базова світла мапа
+            L.tileLayer('https://openstreetmap.org{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                crossOrigin: null,
+                attribution: '&copy; OpenStreetMap'
+            }).addTo(map);
 
-                        if (props.damage) popupContent += `<p style="border-top:1px solid #444; padding-top:5px; margin-top:5px; color:#ccc;">${props.damage}</p>`;
-                        
-                        layer.bindPopup(popupContent, { maxWidth: 280 });
-                    }
-                }).addTo(map);
-            })
-            .catch(err => console.log("Очікування файлу точок..."));
+            // Завантажуємо точки руйнувань
+            fetch('kyiv_damage.geojson?v=' + Date.now())
+                .then(res => res.json())
+                .then(data => {
+                    L.geoJSON(data, {
+                        pointToLayer: function (feature, latlng) {
+                            return L.circleMarker(latlng, {
+                                radius: 6, fillColor: "#ff3333", color: "#ffffff", weight: 1, fillOpacity: 0.85
+                            });
+                        },
+                        onEachFeature: function (feature, layer) {
+                            const props = feature.properties || {};
+                            let popupContent = `<h3>Подія №${props.num || '?'}</h3>`;
+                            if (props.date_time) popupContent += `<p><b>🕒 Дата:</b> ${props.date_time}</p>`;
+                            if (props.place) popupContent += `<p><b>📍 Місце:</b> ${props.place}</p>`;
+                            if (props.wapen && props.wapen !== '—') popupContent += `<p><b>🚀 Зброя:</b> ${props.wapen}</p>`;
+                            
+                            let casualties = [];
+                            if (props.die && props.die !== '—') casualties.push(`Загиблі: ${props.die}`);
+                            if (props.injure && props.injure !== '—' && props.injure !== null) casualties.push(`Поранені: ${props.injure}`);
+                            if (casualties.length > 0) popupContent += `<p><b>🔴 Постраждалі:</b> ${casualties.join(', ')}</p>`;
+
+                            if (props.damage) popupContent += `<p style="border-top:1px solid #444; padding-top:5px; margin-top:5px; color:#ccc;">${props.damage}</p>`;
+                            
+                            layer.bindPopup(popupContent, { maxWidth: 280 });
+                        }
+                    }).addTo(map);
+                })
+                .catch(err => console.log("Очікування файлу точок..."));
+        }, 500);
     </script>
 </body>
 </html>
