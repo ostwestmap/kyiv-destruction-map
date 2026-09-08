@@ -3,82 +3,124 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Карта руйнувань Києва</title>
-    
-    <!-- Підключаємо стандартні стилі з unpkg -->
-    <link rel="stylesheet" href="https://unpkg.com" />
-    
+    <title>Порівняння меж Києва (SVG)</title>
     <style>
-        html, body, #map {
-            margin: 0; padding: 0; width: 100%; height: 100%; background-color: #f0f0f0;
+        /* Чистий світлий фон на всю сторінку */
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #f4f4f6;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #222;
         }
-        .map-title {
-            position: absolute; top: 15px; left: 50%; transform: translateX(-50%); z-index: 1000;
-            background: rgba(20, 20, 20, 0.9); padding: 8px 20px; border-radius: 20px; color: #fff; pointer-events: none;
-            font-family: Arial, sans-serif; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            gap: 40px;
         }
-        .map-title h2 { margin: 0; font-size: 16px; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* Блок для кожної карти */
+        .map-section {
+            background: #ffffff;
+            border: 1px solid #dcdcdc;
+            border-radius: 12px;
+            padding: 20px;
+            width: 90vw;
+            max-width: 800px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            text-align: center;
+        }
+
+        .map-section h2 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 18px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #444;
+        }
+
+        .svg-container {
+            width: 100%;
+            height: 60vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #fafafa;
+            border-radius: 8px;
+            border: 1px dashed #ccc;
+        }
+
+        /* Стилізація векторних ліній контуру */
+        .svg-container svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .svg-container path {
+            fill: #fdfdfd !important;
+            stroke: #444444 !important;
+            stroke-width: 0.5px !important;
+        }
     </style>
 </head>
 <body>
 
-    <div class="map-title">
-        <h2>Карта руйнувань Києва</h2>
+    <div class="container">
+        
+        <!-- Секція для першого файлу border.svg -->
+        <div class="map-section">
+            <h2>Варіант 1: border.svg</h2>
+            <div class="svg-container" id="layer-first">Завантаження...</div>
+        </div>
+
+        <!-- Секція для другого файлу border2.svg -->
+        <div class="map-section">
+            <h2>Варіант 2: border2.svg</h2>
+            <div class="svg-container" id="layer-second">Завантаження...</div>
+        </div>
+
     </div>
 
-    <div id="map"></div>
-
-    <!-- ТЕПЕР МИ БЕРЕМО ДВИГУН КАРТИ ЛОКАЛЬНО З ТВОГО Ж РЕПОЗИТОРІЮ ЯК МОДУЛЬ! -->
-    <script type="module">
-        import './leaflet.js';
-
-        // Запускаємо логіку після перевірки готовності карти
-        setTimeout(function() {
-            if (typeof L === 'undefined') {
-                console.error("Помилка: навіть локальний файл не зміг обійти блок.");
-                return;
-            }
-
-            // Ініціалізація карти Києва
-            const map = L.map('map').setView([50.4501, 30.5234], 11);
-
-            // Базова світла мапа
-            L.tileLayer('https://openstreetmap.org{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                crossOrigin: null,
-                attribution: '&copy; OpenStreetMap'
-            }).addTo(map);
-
-            // Завантажуємо точки руйнувань
-            fetch('kyiv_damage.geojson?v=' + Date.now())
-                .then(res => res.json())
-                .then(data => {
-                    L.geoJSON(data, {
-                        pointToLayer: function (feature, latlng) {
-                            return L.circleMarker(latlng, {
-                                radius: 6, fillColor: "#ff3333", color: "#ffffff", weight: 1, fillOpacity: 0.85
-                            });
-                        },
-                        onEachFeature: function (feature, layer) {
-                            const props = feature.properties || {};
-                            let popupContent = `<h3>Подія №${props.num || '?'}</h3>`;
-                            if (props.date_time) popupContent += `<p><b>🕒 Дата:</b> ${props.date_time}</p>`;
-                            if (props.place) popupContent += `<p><b>📍 Місце:</b> ${props.place}</p>`;
-                            if (props.wapen && props.wapen !== '—') popupContent += `<p><b>🚀 Зброя:</b> ${props.wapen}</p>`;
-                            
-                            let casualties = [];
-                            if (props.die && props.die !== '—') casualties.push(`Загиблі: ${props.die}`);
-                            if (props.injure && props.injure !== '—' && props.injure !== null) casualties.push(`Поранені: ${props.injure}`);
-                            if (casualties.length > 0) popupContent += `<p><b>🔴 Постраждалі:</b> ${casualties.join(', ')}</p>`;
-
-                            if (props.damage) popupContent += `<p style="border-top:1px solid #444; padding-top:5px; margin-top:5px; color:#ccc;">${props.damage}</p>`;
-                            
-                            layer.bindPopup(popupContent, { maxWidth: 280 });
-                        }
-                    }).addTo(map);
+    <script>
+        // Функція для безпечного вбудовування SVG у сторінку
+        function loadSvgFile(filename, containerId) {
+            fetch(filename + '?v=' + Date.now())
+                .then(response => {
+                    if (!response.ok) throw new Error('Файл не знайдено');
+                    return response.text();
                 })
-                .catch(err => console.log("Очікування файлу точок..."));
-        }, 500);
+                .then(svgText => {
+                    const container = document.getElementById(containerId);
+                    container.innerHTML = svgText;
+                    
+                    const svgElement = container.querySelector('svg');
+                    if (svgElement) {
+                        svgElement.setAttribute('width', '100%');
+                        svgElement.setAttribute('height', '100%');
+                        
+                        // Захист: якщо QGIS не прописав viewBox, ставимо базову сітку
+                        if (!svgElement.getAttribute('viewBox')) {
+                            svgElement.setAttribute('viewBox', '0 0 162.775 145.419');
+                        }
+                    }
+                })
+                .catch(error => {
+                    document.getElementById(containerId).innerHTML = 
+                        `<p style="color: #ff3333; font-size: 14px;">Не вдалося завантажити ${filename}. Перевірте, чи є він у репозиторії.</p>`;
+                });
+        }
+
+        // Запускаємо завантаження обох контурів
+        window.addEventListener('DOMContentLoaded', () => {
+            loadSvgFile('border.svg', 'layer-first');
+            loadSvgFile('border2.svg', 'layer-second');
+        });
     </script>
 </body>
 </html>
