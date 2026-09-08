@@ -3,123 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Порівняння меж Києва (SVG)</title>
+    <title>Карта руйнувань Києва</title>
     <style>
-        /* Чистий світлий фон на всю сторінку */
+        /* Жорстке розгортання на весь екран без прокруток */
         html, body {
             margin: 0;
             padding: 0;
-            width: 100%;
-            height: 100%;
-            background-color: #f4f4f6;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            color: #222;
-        }
-
-        .container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-            gap: 40px;
-        }
-
-        /* Блок для кожної карти */
-        .map-section {
-            background: #ffffff;
-            border: 1px solid #dcdcdc;
-            border-radius: 12px;
-            padding: 20px;
-            width: 90vw;
-            max-width: 800px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            text-align: center;
-        }
-
-        .map-section h2 {
-            margin-top: 0;
-            margin-bottom: 15px;
-            font-size: 18px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #444;
-        }
-
-        .svg-container {
-            width: 100%;
-            height: 60vh;
+            width: 100% !important;
+            height: 100% !important;
+            background-color: #f4f4f6; /* Чистий світлий фон */
             display: flex;
             justify-content: center;
             align-items: center;
-            background: #fafafa;
-            border-radius: 8px;
-            border: 1px dashed #ccc;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
 
-        /* Стилізація векторних ліній контуру */
-        .svg-container svg {
-            width: 100%;
-            height: 100%;
+        /* Контейнер карти, який займає 100% доступного простору */
+        #map-container {
+            width: 100vw !important;
+            height: 100vh !important;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-sizing: border-box;
+            padding: 10px; /* Мінімальний безпечний відступ від країв екрану */
         }
 
-        .svg-container path {
-            fill: #fdfdfd !important;
-            stroke: #444444 !important;
-            stroke-width: 0.5px !important;
+        /* Робимо сам SVG адаптивним і примусово розтягуємо до максимумів вікна */
+        #map-container svg {
+            width: 100% !important;
+            height: 100% !important;
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain; /* Зберігає правильні пропорції Києва на будь-якому екрані */
+        }
+
+        /* Налаштування ліній та кольору контуру міста */
+        #map-container path {
+            fill: #ffffff !important;         /* Біла заливка міста */
+            stroke: #555555 !important;       /* Чіткі темні лінії меж */
+            stroke-width: 0.4px !important;   /* Оптимальна товщина ліній */
+            transition: fill 0.2s, stroke 0.2s;
+            cursor: pointer;
+        }
+
+        /* Ефект підсвічування району при наведенні мишкою */
+        #map-container path:hover {
+            fill: #e9ecef !important;
+            stroke: #ff3333 !important;       /* Робимо межу червоною при наведенні */
+            stroke-width: 0.8px !important;
         }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        
-        <!-- Секція для першого файлу border.svg -->
-        <div class="map-section">
-            <h2>Варіант 1: border.svg</h2>
-            <div class="svg-container" id="layer-first">Завантаження...</div>
-        </div>
-
-        <!-- Секція для другого файлу border2.svg -->
-        <div class="map-section">
-            <h2>Варіант 2: border2.svg</h2>
-            <div class="svg-container" id="layer-second">Завантаження...</div>
-        </div>
-
-    </div>
+    <!-- Єдиний повноекранний контейнер для нашого SVG -->
+    <div id="map-container">Завантаження карти...</div>
 
     <script>
-        // Функція для безпечного вбудовування SVG у сторінку
-        function loadSvgFile(filename, containerId) {
-            fetch(filename + '?v=' + Date.now())
+        window.addEventListener('DOMContentLoaded', () => {
+            // Завантажуємо обраний файл border.svg із захистом від кешу
+            fetch('border.svg?v=' + Date.now())
                 .then(response => {
-                    if (!response.ok) throw new Error('Файл не знайдено');
+                    if (!response.ok) throw new Error('Файл border.svg не знайдено');
                     return response.text();
                 })
                 .then(svgText => {
-                    const container = document.getElementById(containerId);
+                    const container = document.getElementById('map-container');
                     container.innerHTML = svgText;
                     
                     const svgElement = container.querySelector('svg');
                     if (svgElement) {
+                        // Скидаємо фіксовані пікселі QGIS, щоб увімкнути повну адаптивність
                         svgElement.setAttribute('width', '100%');
                         svgElement.setAttribute('height', '100%');
                         
-                        // Захист: якщо QGIS не прописав viewBox, ставимо базову сітку
+                        // Фіксуємо правильну сітку координат з QGIS макета
                         if (!svgElement.getAttribute('viewBox')) {
                             svgElement.setAttribute('viewBox', '0 0 162.775 145.419');
                         }
                     }
                 })
                 .catch(error => {
-                    document.getElementById(containerId).innerHTML = 
-                        `<p style="color: #ff3333; font-size: 14px;">Не вдалося завантажити ${filename}. Перевірте, чи є він у репозиторії.</p>`;
+                    document.getElementById('map-container').innerHTML = 
+                        `<p style="color: #ff3333; font-size: 16px; font-weight: bold;">
+                            Помилка завантаження файлу контурів міста.
+                         </p>`;
+                    console.error(error);
                 });
-        }
-
-        // Запускаємо завантаження обох контурів
-        window.addEventListener('DOMContentLoaded', () => {
-            loadSvgFile('border.svg', 'layer-first');
-            loadSvgFile('border2.svg', 'layer-second');
         });
     </script>
 </body>
