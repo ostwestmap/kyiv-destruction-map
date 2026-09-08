@@ -11,12 +11,12 @@
             padding: 0;
             width: 100% !important;
             height: 100% !important;
-            background-color: #f4f4f6; /* Чистий світлий фон */
+            background-color: #f4f4f6; /* Наш чистий загальний світлий фон */
             display: flex;
             justify-content: center;
             align-items: center;
             overflow: hidden;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            box-sizing: border-box;
         }
 
         /* Контейнер карти, який займає 100% доступного простору */
@@ -26,7 +26,6 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            box-sizing: border-box;
             padding: 10px; /* Мінімальний безпечний відступ від країв екрану */
         }
 
@@ -41,7 +40,7 @@
 
         /* Налаштування ліній та кольору контуру міста */
         #map-container path {
-            fill: #ffffff !important;         /* Біла заливка міста */
+            fill: #ffffff !important;         /* Чиста біла заливка самих районів міста */
             stroke: #555555 !important;       /* Чіткі темні лінії меж */
             stroke-width: 0.4px !important;   /* Оптимальна товщина ліній */
             transition: fill 0.2s, stroke 0.2s;
@@ -58,12 +57,12 @@
 </head>
 <body>
 
-    <!-- Єдиний повноекранний контейнер для нашого SVG -->
+    <!-- Повноекранний контейнер для нашого SVG -->
     <div id="map-container">Завантаження карти...</div>
 
     <script>
         window.addEventListener('DOMContentLoaded', () => {
-            // Завантажуємо обраний файл border.svg із захистом від кешу
+            // Завантажуємо файл border.svg із захистом від кешу
             fetch('border.svg?v=' + Date.now())
                 .then(response => {
                     if (!response.ok) throw new Error('Файл border.svg не знайдено');
@@ -75,6 +74,17 @@
                     
                     const svgElement = container.querySelector('svg');
                     if (svgElement) {
+                        // АВТОМАТИЧНЕ ЗНИЩЕННЯ БІЛОГО ФОНУ З QGIS
+                        // Знаходимо перший прямокутник (rect), який QGIS використовує як підкладку аркуша, і видаляємо його
+                        const backgroundRect = svgElement.querySelector('rect');
+                        if (backgroundRect) {
+                            backgroundRect.style.fill = 'transparent';
+                            backgroundRect.style.display = 'none';
+                        }
+
+                        // Примусово робимо загальний фон самого SVG прозорим
+                        svgElement.style.backgroundColor = 'transparent';
+
                         // Скидаємо фіксовані пікселі QGIS, щоб увімкнути повну адаптивність
                         svgElement.setAttribute('width', '100%');
                         svgElement.setAttribute('height', '100%');
@@ -87,9 +97,7 @@
                 })
                 .catch(error => {
                     document.getElementById('map-container').innerHTML = 
-                        `<p style="color: #ff3333; font-size: 16px; font-weight: bold;">
-                            Помилка завантаження файлу контурів міста.
-                         </p>`;
+                        `<p style="color: #ff3333; font-size: 16px; font-weight: bold;">Помилка завантаження файлу контурів міста.</p>`;
                     console.error(error);
                 });
         });
